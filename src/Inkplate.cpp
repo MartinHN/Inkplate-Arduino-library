@@ -72,10 +72,9 @@ void Inkplate::clearDisplay()
  *              display update in order to save some time needed for power supply
  *              to save some time at next display update or increase refreshing speed
  */
-void Inkplate::display(bool leaveOn)
-{
+void Inkplate::display(bool leaveOn, bool fast) {
     if (getDisplayMode() == 0)
-        display1b(leaveOn);
+      display1b(leaveOn, fast);
     else if (getDisplayMode() == 1)
         display3b(leaveOn);
 }

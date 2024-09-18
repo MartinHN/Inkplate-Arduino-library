@@ -56,14 +56,18 @@ void pngle_on_draw(pngle_t *pngle, uint32_t x, uint32_t y, uint32_t w, uint32_t 
         _pngPosition = Image::_npos;
     }
     if (rgba[3])
+    {
+        pngle_ihdr_t *ihdr = pngle_get_ihdr(pngle);
+        // bool chk = ((y == 620) && (x == 100)) || (w > 1) || (h > 1);
+        // if (chk)
+        //   Serial.print(String(x) + ", " + String(y) + ", " + String(w) + ", " +
+        //                String(h) + " ::  ");
         for (int j = 0; j < h; ++j)
             for (int i = 0; i < w; ++i)
             {
                 uint8_t r = rgba[0];
                 uint8_t g = rgba[1];
                 uint8_t b = rgba[2];
-
-                pngle_ihdr_t *ihdr = pngle_get_ihdr(pngle);
 
                 if (ihdr->depth == 1)
                     r = g = b = (b ? 0xFF : 0);
@@ -90,14 +94,17 @@ void pngle_on_draw(pngle_t *pngle, uint32_t x, uint32_t y, uint32_t w, uint32_t 
                                                          _imagePtrPng->width(), 0);
 #else
                     px = _imagePtrPng->ditherGetPixelBmp(RGB8BIT(r, g, b), x + i, y + j, _imagePtrPng->width(), 0);
-                    if (_pngInvert)
-                        px = 7 - px;
-                    if (_imagePtrPng->getDisplayMode() == INKPLATE_1BIT)
-                        px = (~px >> 2) & 1;
 #endif
                 }
+                    if (_pngInvert)
+                        px = 255 - px;
+                    if (_imagePtrPng->getDisplayMode() == INKPLATE_1BIT)
+                        px = (~px >> 2) & 1;
                 _imagePtrPng->drawPixel(_pngX + x + i, _pngY + y + j, px);
             }
+  } else {
+    // Serial.println("inv" + String(y));
+  }
     if (lastY != y)
     {
         lastY = y;
@@ -164,22 +171,26 @@ bool Image::drawPngFromSd(SdFile *p, int x, int y, bool dither, bool invert)
     _pngY = y;
     pngle_set_draw_callback(pngle, pngle_on_draw);
     uint32_t total = p->fileSize();
+  //   Serial.println("will draw " + String(y) + "tot" + String(total));
     uint8_t buff[2048];
     uint32_t pnt = 0;
 
-    while (pnt < total)
-    {
+  while (pnt < total) {
         uint32_t toread = p->available();
-        if (toread > 0)
-        {
-            int len = p->read(buff, min((uint32_t)2048, toread));
-            int fed = pngle_feed(pngle, buff, len);
-            if (fed < 0)
-            {
+    if (toread > 0) {
+      if (toread > sizeof(buff) - remain) {
+        toread = sizeof(buff) - remain;
+      }
+      int len = p->read(buff + remain, min((uint32_t)2048, toread));
+      int fed = pngle_feed(pngle, buff, remain + len);
+      if (fed < 0) {
+        Serial.println("error");
                 ret = 0;
                 break;
             }
             remain = remain + len - fed;
+      if (remain > 0)
+        memmove(buff, buff + fed, remain);
             pnt += len;
         }
     }

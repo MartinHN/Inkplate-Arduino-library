@@ -62,7 +62,7 @@ class Inkplate : public System, public Graphics
     void display(void);
 #else
     Inkplate(uint8_t _mode);
-    void display(bool leaveOn = false);
+  void display(bool leaveOn = false, bool fast = false);
 #endif
 
 #if defined(ARDUINO_INKPLATE10) || defined(ARDUINO_INKPLATE10V2)
@@ -71,12 +71,23 @@ class Inkplate : public System, public Graphics
     bool getWaveformFromEEPROM(struct waveformData *_w);
     void burnWaveformToEEPROM(struct waveformData _w);
 #endif
+  void restore1dSnapShot(uint8_t *d, int w, int h, int x, int y) {
+    for (int i = 0; i < w * h / 8; i++) {
+      _partial[i] = d[i];
+    }
+  }
+  void get1bSnapshot(uint8_t *d, int w, int h) {
+    for (int i = 0; i < w * h / 8; i++) {
+      d[i] = _partial[i];
+    }
+  }
     bool begin(void);
     void clearDisplay();
 
 #if !defined(ARDUINO_INKPLATECOLOR) || !defined(ARDUINO_INKPLATE4) || !defined(ARDUINO_INKPLATE7) ||                   \
     !defined(ARDUINO_INKPLATE2)
-    uint32_t partialUpdate(bool _forced = false, bool leaveOn = false);
+  uint32_t partialUpdate(bool _forced = false, bool leaveOn = false,
+                         bool fast = false);
     int einkOn();
     void einkOff();
     void preloadScreen();
@@ -159,7 +170,7 @@ class Inkplate : public System, public Graphics
 #if !defined(ARDUINO_INKPLATECOLOR) || !defined(ARDUINO_INKPLATE4) || !defined(ARDUINO_INKPLATE7) ||                   \
     !defined(ARDUINO_INKPLATE2)
 
-    void display1b(bool leaveOn = false);
+  void display1b(bool leaveOn = false, bool fast = false);
     void display3b(bool leaveOn = false);
 
     void vscan_start();

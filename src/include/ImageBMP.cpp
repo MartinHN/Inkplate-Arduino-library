@@ -344,7 +344,7 @@ void Image::displayBmpLine(int16_t x, int16_t y, bitmapHeader *bmpHeader, bool d
                 val = palette[px >> 1] & (px & 1 ? 0x0F : 0xF0) >> (px & 1 ? 0 : 4);
             }
 
-#if defined(ARDUINO_INKPLATECOLOR)
+#if defined(ARDUINO_INKPLATECOLOR) || defined(ARDUINO_INKPLATE10)
             if (invert)
                 val = 7 - val;
 //            if (getDisplayMode() == INKPLATE_1BIT)
@@ -368,15 +368,16 @@ void Image::displayBmpLine(int16_t x, int16_t y, bitmapHeader *bmpHeader, bool d
                 val = palette[px >> 1] & (px & 1 ? 0x0F : 0xF0) >> (px & 1 ? 0 : 4);
             }
 
-#if defined(ARDUINO_INKPLATECOLOR)
-            if (invert)
-                val = 7 - val;
-//            if (getDisplayMode() == INKPLATE_1BIT)
+      //    if (invert)
 //                val = (~val >> 2) & 1;
-#elif defined(ARDUINO_INKPLATE2) || defined(ARDUINO_INKPLATE4) || defined(ARDUINO_INKPLATE7)
-            if (invert)
-                val = val ^ 1;
-#endif
+      // #if defined(ARDUINO_INKPLATECOLOR)
+      //             if (invert)
+      //                 val = 7 - val;
+      // #elif defined(ARDUINO_INKPLATE2) || defined(ARDUINO_INKPLATE4) ||
+      // defined(ARDUINO_INKPLATE7)
+      //             if (invert)
+      //                 val = val ^ 1;
+      // #endif
             writePixel(x + j, (h - y - 1), val);
             break;
         }

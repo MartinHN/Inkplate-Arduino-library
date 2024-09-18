@@ -217,22 +217,21 @@ void Graphics::writePixel(int16_t x0, int16_t y0, uint16_t color)
         break;
     }
 
-    if (getDisplayMode() == 0)
-    {
+  // if (getDisplayMode() == 0) {
         int x = x0 >> 3;
         int x_sub = x0 & 7;
         uint8_t temp = *(_partial + ((E_INK_WIDTH >> 3) * y0) + x);
-        *(_partial + (E_INK_WIDTH / 8 * y0) + x) = (~pixelMaskLUT[x_sub] & temp) | (color ? pixelMaskLUT[x_sub] : 0);
-    }
-    else
-    {
-        color &= 7;
-        int x = x0 >> 1;
-        int x_sub = x0 & 1;
-        uint8_t temp;
-        temp = *(DMemory4Bit + (E_INK_WIDTH >> 1) * y0 + x);
-        *(DMemory4Bit + (E_INK_WIDTH >> 1) * y0 + x) = (pixelMaskGLUT[x_sub] & temp) | (x_sub ? color : color << 4);
-    }
+  *(_partial + (E_INK_WIDTH / 8 * y0) + x) =
+      (~pixelMaskLUT[x_sub] & temp) | (color ? pixelMaskLUT[x_sub] : 0);
+  // } else {
+  //   color &= 7;
+  //   int x = x0 >> 1;
+  //   int x_sub = x0 & 1;
+  //   uint8_t temp;
+  //   temp = *(DMemory4Bit + (E_INK_WIDTH >> 1) * y0 + x);
+  //   *(DMemory4Bit + (E_INK_WIDTH >> 1) * y0 + x) =
+  //       (pixelMaskGLUT[x_sub] & temp) | (x_sub ? color : color << 4);
+  // }
 }
 
 /**
@@ -244,9 +243,8 @@ void Graphics::writePixel(int16_t x0, int16_t y0, uint16_t color)
  *              display update in order to save some time needed for power supply
  *              to save some time at next display update or increase refreshing speed
  */
-void Inkplate::display1b(bool leaveOn)
-{
-    memcpy(DMemoryNew, _partial, E_INK_WIDTH * E_INK_HEIGHT / 8);
+void Inkplate::display1b(bool leaveOn, bool fast) {
+  // memcpy(DMemoryNew, _partial, E_INK_WIDTH * E_INK_HEIGHT / 8);
 
     uint32_t _pos;
     uint8_t data;
@@ -256,8 +254,12 @@ void Inkplate::display1b(bool leaveOn)
     if (!einkOn())
         return;
 
-    if (waveformEEPROM.waveformId != INKPLATE10_WAVEFORM1)
-    {
+  if (fast) {
+    clean(0, 2);
+    clean(1, 1);
+    clean(2, 1);
+    _repeat = 2;
+  } else if (waveformEEPROM.waveformId != INKPLATE10_WAVEFORM1) {
         clean(0, 1);
         clean(1, 12);
         clean(2, 1);
@@ -312,8 +314,13 @@ void Inkplate::display1b(bool leaveOn)
         delayMicroseconds(230);
     }
 
+  if (fast) {
+    clean(2, 1);
+    clean(3, 1);
+  } else {
     clean(2, 2);
     clean(3, 1);
+  }
 
     vscan_start();
     if (!leaveOn)
@@ -414,13 +421,15 @@ void IRAM_ATTR Inkplate::display3b(bool leaveOn)
  *
  * @return      Number of pixels changed from black to white, leaving blur
  */
-uint32_t Inkplate::partialUpdate(bool _forced, bool leaveOn)
-{
+uint32_t Inkplate::partialUpdate(bool _forced, bool leaveOn, bool fast) {
     if (getDisplayMode() == 1)
         return 0;
+  // preloadScreen();
+  // display1b(true, true);
+  // return 0;
     if (_blockPartial == 1 && !_forced)
     {
-        display1b(leaveOn);
+        display1b(leaveOn, fast);
         return 0;
     }
 
@@ -439,14 +448,14 @@ uint32_t Inkplate::partialUpdate(bool _forced, bool leaveOn)
         {
             diffw = *(DMemoryNew + _pos) & ~*(_partial + _pos);
             diffb = ~*(DMemoryNew + _pos) & *(_partial + _pos);
-            if (diffw) // count pixels turning from black to white as these are visible blur
-            {
-                for (int bv = 1; bv < 256; bv <<= 1)
-                {
-                    if (diffw & bv)
-                        ++changeCount;
-                }
-            }
+      // if (diffw) // count pixels turning from black to white as these are
+      //            // visible blur
+      // {
+      //   for (int bv = 1; bv < 256; bv <<= 1) {
+      //     if (diffw & bv)
+      //       ++changeCount;
+      //   }
+      // }
             _pos--;
             *(_pBuffer + n) = LUTW[diffw >> 4] & (LUTB[diffb >> 4]);
             n--;
@@ -458,13 +467,12 @@ uint32_t Inkplate::partialUpdate(bool _forced, bool leaveOn)
     if (!einkOn())
         return 0;
 
-    if (waveformEEPROM.waveformId != INKPLATE10_WAVEFORM1)
-    {
-        _repeat = 4;
-    }
-    else
-    {
-        _repeat = 5;
+  if (fast) {
+    _repeat = 2;
+    // } else if (waveformEEPROM.waveformId != INKPLATE10_WAVEFORM1) {
+    //   _repeat = 4;
+  } else {
+    _repeat = 4; // was 5
     }
 
     for (int k = 0; k < _repeat; ++k)
@@ -491,8 +499,13 @@ uint32_t Inkplate::partialUpdate(bool _forced, bool leaveOn)
         }
         delayMicroseconds(230);
     }
+  if (fast) {
+    clean(2, 1);
+    clean(3, 1);
+  } else {
     clean(2, 2);
     clean(3, 1);
+  }
     vscan_start();
 
     if (!leaveOn)
